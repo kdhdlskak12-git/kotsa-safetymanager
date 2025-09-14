@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>안전관리자 직무 셀프 테스트</title>
+  <style>
+    :root{
+      --bg:#29c3cd; /* 메인 민트 */
+      --bg-dark:#1fb4be;
+      --ink:#073b4c; /* 진한 글자 */
+      --card:#d7f7f9; /* 카드 배경 */
+      --btn:#0e7c86; /* 버튼 */
+      --btn-hover:#0c6a72;
+      --ok:#17a34a; /* 정답 표시 */
+      --no:#ef4444; /* 오답 표시 */
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: "Pretendard", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "맑은 고딕", sans-serif;
+      background:var(--bg); color:var(--ink); display:flex; align-items:center; justify-content:center;
+    }
+    .app{width:min(960px, 100%); padding:24px}
+    .hero{background:linear-gradient(180deg, var(--bg) 0%, var(--bg-dark) 100%); border-radius:24px; padding:28px; color:white; position:relative; box-shadow:0 10px 20px rgba(0,0,0,.08)}
+    .hero h1{margin:0 0 8px; font-size:40px; letter-spacing:-.5px}
+    .hero p{margin:6px 0 0; opacity:.95}
+    .stat{
+      display:flex; align-items:center; gap:12px; margin-top:14px; font-weight:700; font-size:18px;
+      background:rgba(255,255,255,.15); width:max-content; padding:8px 14px; border-radius:999px;
+    }
+    .card{background:var(--card); border-radius:20px; padding:20px; margin-top:18px; box-shadow:0 10px 16px rgba(0,0,0,.06)}
+
+    .btn{appearance:none; border:none; background:var(--btn); color:#fff; font-weight:800; padding:16px 22px; border-radius:18px; cursor:pointer; font-size:18px; letter-spacing:-.2px; box-shadow:0 8px 14px rgba(0,0,0,.15)}
+    .btn:hover{background:var(--btn-hover)}
+    .btn.secondary{background:transparent; border:2px solid rgba(255,255,255,.8)}
+
+    .progress{height:14px; background:#b6eef2; border-radius:999px; overflow:hidden; margin:10px 0 18px}
+    .bar{height:100%; background:#0891b2; width:0%}
+
+    .q-title{font-size:24px; margin:0 0 14px; line-height:1.4}
+    .opt{display:block; width:100%; text-align:left; padding:14px 16px; margin:10px 0; border-radius:16px; border:2px solid transparent; background:#b6eef2; color:#084d57; font-weight:800; cursor:pointer; font-size:18px}
+    .opt:hover{filter:brightness(.98)}
+
+    .pill{display:inline-flex; gap:8px; align-items:center; padding:6px 10px; border-radius:999px; font-weight:700}
+    .ok{background:#dcfce7; color:#14532d}
+    .no{background:#fee2e2; color:#7f1d1d}
+
+    .result h2{margin:0 0 10px}
+    .grid{display:grid; grid-template-columns:1fr; gap:10px}
+    @media(min-width:720px){ .grid{grid-template-columns:1fr 1fr} }
+
+    .row{display:flex; align-items:center; justify-content:space-between; gap:12px; background:#b6eef2; border-radius:14px; padding:10px 12px}
+    .row span{font-weight:700}
+
+    .footer{margin-top:16px; display:flex; gap:12px; flex-wrap:wrap}
+    .muted{opacity:.8}
+    .center{text-align:center}
+    .small{font-size:14px}
+
+    .hide{display:none}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- HERO / 시작 화면 -->
+    <section id="screen-start" class="hero">
+      <h1>안전관리자 직무 셀프 테스트</h1>
+      <p class="muted">8개 문항, 문항당 과태료 1,000,000원(가정). 정답/오답에 관계없이 다음 문항으로 진행됩니다.</p>
+      <div class="stat" aria-live="polite">지금까지 참가자: <span id="participantCount">0</span> 명</div>
+      <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap">
+        <div>
+          <div class="small muted">테스트를 시작하면 진행률이 표시됩니다.</div>
+        </div>
+        <button id="btnStart" class="btn" aria-label="테스트 시작하기">테스트 시작하기</button>
+      </div>
+    </section>
+
+    <!-- 문제 화면 -->
+    <section id="screen-quiz" class="card hide" aria-live="polite">
+      <div class="progress" aria-hidden="true"><div id="progressBar" class="bar"></div></div>
+      <div class="center small muted" id="idxLabel">1 / 8</div>
+      <h2 id="qTitle" class="q-title"></h2>
+      <div id="optWrap"></div>
+    </section>
+
+    <!-- 결과 화면 -->
+    <section id="screen-result" class="card hide">
+      <div class="center">
+        <h2>내 안전이해도</h2>
+        <p class="muted">정답 <b id="score"></b> / <span id="totalQ"></span> · 예상 과태료 <b id="penalty"></b>원</p>
+      </div>
+      <div class="result">
+        <h3>항목별 이행 여부</h3>
+        <div id="summary" class="grid"></div>
+      </div>
+      <div class="footer center">
+        <button class="btn" id="btnRetry">다시하기</button>
+        <button class="btn secondary" id="btnShare" title="결과 URL 복사">공유하기</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // ====== 데이터 정의 ======
+    // 문항당 과태료(가정)
+    const FINE_PER_Q = 1000000; // 100만원
+
+    // 8개 문항과 결과 항목 매핑
+    const QUIZ = [
+      {
+        title: '승강기가 고장나는걸 대비해 미리 준비해야 하는 것은?',
+        options: ['승강기 내 손잡이','비상연락망','광고용 LED화면'],
+        answer: 1,
+        tag: '승강기 비상연락 체계도'
+      },
+      {
+        title: '승강기가 고장나는걸 대비한 구급체계 조직도는?',
+        options: ['관리조직표 및 인적사항','비상연락망','카 내 열림버튼'],
+        answer: 0,
+        tag: '구급체계 구성'
+      },
+      {
+        title: '승강기가 고장/수리를 할 때 작성해야 하는 문서는?',
+        options: ['비상열쇠 사용대장','일상점검일지','고장수리일지'],
+        answer: 2,
+        tag: '유지관리업체 관리'
+      },
+      {
+        title: '중대한 고장/사고가 나서 안전공단에 보고하는 방법은?',
+        options: ['보고하지 않는다','중대 고장 보고서 FAX발송','119에 전화한다'],
+        answer: 1,
+        tag: '중대사고/고장 통보'
+      },
+      {
+        title: '승강기 비상열쇠를 관리하는 대장은?',
+        options: ['비상열쇠 관리대장','점검일지','비상연락망'],
+        answer: 0,
+        tag: '비상열쇠 관리'
+      },
+      {
+        title: '승강기 운행 및 관리에 대한 규정 제정은 누가할까?',
+        options: ['유지관리업체','하지 않는다','안전관리자'],
+        answer: 2,
+        tag: '승강기 규정 제정'
+      },
+      {
+        title: '자체점검의 기록을 확인하는 곳은 어디인가?',
+        options: ['국가승강기정보센터','정부24','119구조대'],
+        answer: 0,
+        tag: '점검 기록 관리'
+      },
+      {
+        title: '승강기 안전관리자가 수행해야하는 직무는?',
+        options: ['소방점검','승강기 일상점검','전기검침'],
+        answer: 1,
+        tag: '일상점검 실시'
+      }
+    ];
+
+    // ====== 상태 ======
+    const state = {
+      step: 0,               // 0..7
+      answers: []            // 선택 인덱스 기록
+    };
+
+    // ====== DOM 참조 ======
+    const $ = s => document.querySelector(s);
+    const screenStart = $('#screen-start');
+    const screenQuiz = $('#screen-quiz');
+    const screenResult = $('#screen-result');
+    const btnStart = $('#btnStart');
+    const btnRetry = $('#btnRetry');
+    const btnShare = $('#btnShare');
+    const qTitle = $('#qTitle');
+    const optWrap = $('#optWrap');
+    const progressBar = $('#progressBar');
+    const idxLabel = $('#idxLabel');
+    const scoreEl = $('#score');
+    const totalQEl = $('#totalQ');
+    const penaltyEl = $('#penalty');
+    const summaryEl = $('#summary');
+    const participantCountEl = $('#participantCount');
+
+    // ====== 참가자 카운트 (로컬 스토리지 기반 – 사이트/브라우저 집계) ======
+    const LS_KEY_PARTICIPANTS = 'elev_quiz_participants';
+    function getParticipants(){
+      const n = parseInt(localStorage.getItem(LS_KEY_PARTICIPANTS)||'0',10);
+      return isNaN(n)?0:n;
+    }
+    function incParticipants(){
+      const n = getParticipants()+1; localStorage.setItem(LS_KEY_PARTICIPANTS, String(n));
+      renderParticipants();
+    }
+    function renderParticipants(){ participantCountEl.textContent = getParticipants().toLocaleString('ko-KR'); }
+
+    // ====== 화면 전환 ======
+    function show(el){ [screenStart,screenQuiz,screenResult].forEach($el=>$el.classList.add('hide')); el.classList.remove('hide'); }
+
+    // ====== 문제 렌더 ======
+    function renderQuestion(){
+      const i = state.step; const q = QUIZ[i];
+      qTitle.textContent = q.title;
+      idxLabel.textContent = `${i+1} / ${QUIZ.length}`;
+      progressBar.style.width = `${((i)/QUIZ.length)*100}%`;
+      optWrap.innerHTML = '';
+      q.options.forEach((label, idx)=>{
+        const btn = document.createElement('button');
+        btn.className = 'opt';
+        btn.innerHTML = `${idx+1}. ${label}`;
+        btn.addEventListener('click', ()=> selectAnswer(idx));
+        optWrap.appendChild(btn);
+      });
+    }
+
+    function selectAnswer(choice){
+      state.answers[state.step] = choice;
+      if(state.step < QUIZ.length-1){
+        state.step += 1; renderQuestion();
+      } else { finish(); }
+    }
+
+    // ====== 결과 계산/표시 ======
+    function finish(){
+      // 진행바 100%
+      progressBar.style.width = '100%';
+      // 점수
+      let correct = 0; const rows = [];
+      QUIZ.forEach((q, i)=>{
+        const ok = state.answers[i] === q.answer; if(ok) correct++;
+        rows.push({ tag:q.tag, ok });
+      });
+      const wrong = QUIZ.length - correct;
+      const penalty = wrong * FINE_PER_Q;
+
+      scoreEl.textContent = String(correct);
+      totalQEl.textContent = String(QUIZ.length);
+      penaltyEl.textContent = penalty.toLocaleString('ko-KR');
+
+      // 요약 테이블
+      summaryEl.innerHTML = '';
+      rows.forEach(r=>{
+        const div = document.createElement('div');
+        div.className = 'row';
+        const left = document.createElement('span'); left.textContent = r.tag;
+        const right = document.createElement('span');
+        right.className = 'pill ' + (r.ok? 'ok' : 'no');
+        right.textContent = r.ok ? '이행 ✅' : '미이행 ❌';
+        div.appendChild(left); div.appendChild(right);
+        summaryEl.appendChild(div);
+      });
+
+      // 참가자 수 증가
+      incParticipants();
+
+      show(screenResult);
+    }
+
+    // ====== 공유 ======
+    btnShare.addEventListener('click', async ()=>{
+      const url = location.href; const text = '안전관리자 직무 셀프 테스트 결과';
+      try{
+        if(navigator.share){ await navigator.share({ title: document.title, text, url }); }
+        else { await navigator.clipboard.writeText(url); alert('URL이 복사되었습니다. 원하는 곳에 붙여넣기 하세요.'); }
+      }catch(e){ console.log(e); }
+    });
+
+    // ====== 시작/다시하기 ======
+    btnStart.addEventListener('click', ()=>{
+      state.step = 0; state.answers = []; renderQuestion(); show(screenQuiz);
+    });
+    btnRetry.addEventListener('click', ()=>{
+      state.step = 0; state.answers = []; show(screenQuiz); renderQuestion();
+    });
+
+    // 초기 렌더
+    renderParticipants();
+  </script>
+</body>
+</html>
